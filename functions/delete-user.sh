@@ -19,6 +19,7 @@ delete_user() {
             for elem in "$@"; do
                 if [ -n "$elem" ]; then
                     sudo deluser "$elem" --remove-home
+                    sudo delgroup "$elem"
                 fi
             done
         fi
