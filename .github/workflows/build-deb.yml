@@ -1,0 +1,50 @@
+name: Build and Publish Debian Package
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Vérifier le code Bash avec Shellcheck
+        run: shellcheck mon-script.sh
+
+      - name: Extraire le numéro de version
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+
+      - name: Préparer l'arborescence du paquet
+        run: |
+          # Création des dossiers
+          mkdir -p build/mon-projet_${{ env.VERSION }}_all/usr/bin
+          mkdir -p build/mon-projet_${{ env.VERSION }}_all/DEBIAN
+          
+          # Copie du script et droits d'exécution
+          cp mon-script.sh build/mon-projet_${{ env.VERSION }}_all/usr/bin/mon-projet
+          chmod +x build/mon-projet_${{ env.VERSION }}_all/usr/bin/mon-projet
+
+      - name: Générer le fichier control
+        run: |
+          cat <<EOF > build/mon-projet_${{ env.VERSION }}_all/DEBIAN/control
+          Package: mon-projet
+          Version: ${{ env.VERSION }}
+          Architecture: all
+          Maintainer: Ton Nom <ton@email.com>
+          Description: Mon super script bash automatisé via CI/CD.
+          EOF
+
+      - name: Construire le paquet .deb
+        run: dpkg-deb --build build/mon-projet_${{ env.VERSION }}_all
+
+      - name: Sauvegarder le .deb comme artefact (téléchargeable depuis GitHub)
+        uses: actions/upload-artifact@v4
+        with:
+          name: mon-projet-deb
+          path: build/*.deb
